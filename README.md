@@ -4,6 +4,8 @@
 
 [![TYPO3 11](https://img.shields.io/badge/TYPO3-11-orange.svg)](https://get.typo3.org/version/11)
 
+[![ci](https://github.com/TYPO3-Headless/typo3_ai/actions/workflows/ci.yml/badge.svg)](https://github.com/TYPO3-Headless/typo3_ai/actions/workflows)
+
 ChatGPT (OpenAI) can greatly accelerate the translation process in TYPO3 CMS by leveraging Artificial Inteligence powerful natural language processing capabilities.
 
 With ChatGPT, translation can be automated and improved with features such as language detection, translation suggestions, and content optimization.
