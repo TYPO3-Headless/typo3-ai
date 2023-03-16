@@ -37,7 +37,7 @@ class TranslationController extends ActionController
     {
         if ($request->getQueryParams()['edit'] && $this->getBackendUser()->isAdmin()) {
             $translationService = GeneralUtility::makeInstance(TranslationService::class);
-            $columns = ['sys_language_uid', 'pid'];
+            $columns = ['sys_language_uid', 'pid', 'uid'];
 
             foreach ($request->getQueryParams()['edit'] as $table => $config) {
                 $uid = key($config);
