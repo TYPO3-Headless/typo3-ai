@@ -16,6 +16,7 @@ namespace TYPO3Headless\Typo3Ai\Hook;
 
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Template\Components\ButtonBar;
+use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Localization\LanguageService;
@@ -23,8 +24,11 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 class AddTranslateButton
 {
-    public function __construct(protected UriBuilder $uriBuilder, protected IconFactory $iconFactory)
-    {
+    public function __construct(
+        protected UriBuilder $uriBuilder,
+        protected IconFactory $iconFactory,
+        protected ConnectionPool $connectionPool
+    ) {
     }
 
 
@@ -41,7 +45,15 @@ class AddTranslateButton
 
             $editParameters = GeneralUtility::_GET('edit');
 
-            if (empty($editParameters)) {
+            if (empty($editParameters) || !is_array($editParameters)) {
+                return $buttons;
+            }
+
+            $tableName = key($editParameters);
+            $uid = key($editParameters[$tableName]);
+            $language = $this->getLanguageIdForRecord($tableName, $uid);
+
+            if ($language === 0) {
                 return $buttons;
             }
 
@@ -53,13 +65,42 @@ class AddTranslateButton
             $translateByAi = $buttonBar->makeLinkButton()
                 ->setShowLabelText(true)
                 ->setHref($actionUri)
-                ->setTitle($this->getLanguageService()->sL('LLL:EXT:typo3_ai/Resources/Private/Language/locallang.xlf:translateAi'))
+                ->setTitle(
+                    $this->getLanguageService()->sL(
+                        'LLL:EXT:typo3_ai/Resources/Private/Language/locallang.xlf:translateAi'
+                    )
+                )
                 ->setIcon($this->iconFactory->getIcon('actions-translate', Icon::SIZE_SMALL));
 
             $buttons[ButtonBar::BUTTON_POSITION_LEFT][20][] = $translateByAi;
         }
 
         return $buttons;
+    }
+
+    protected function getLanguageIdForRecord(string $tableName, int $uid): int
+    {
+        $queryBuilder = $this->connectionPool->getQueryBuilderForTable($tableName);
+        $queryBuilder->getRestrictions()->removeAll();
+
+        if (!isset($GLOBALS['TCA']['tt_content']['ctrl']['languageField'])) {
+            return 0;
+        }
+
+        $languageField = $GLOBALS['TCA']['tt_content']['ctrl']['languageField'];
+
+        $record = $queryBuilder
+            ->select($languageField)
+            ->from($tableName)
+            ->where($queryBuilder->expr()->eq('uid', $uid))
+            ->executeQuery()
+            ->fetchAssociative();
+
+        if (!is_array($record)) {
+            return 0;
+        }
+
+        return $record[$languageField];
     }
 
     /**
