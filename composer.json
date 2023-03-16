@@ -33,7 +33,7 @@
     "phpstan/phpstan-strict-rules": "^1.5.0",
     "saschaegerer/phpstan-typo3": "^1.8.2",
     "symfony/yaml": "^5.4 || ^6.1",
-    "typo3/coding-standards": "^0.6.1"
+    "typo3/coding-standards": "^0.7.1"
   },
   "minimum-stability": "stable",
   "autoload": {
