@@ -1,0 +1,38 @@
+{
+  "name": "typo3headless/typo3ai",
+  "description": "TYPO3 AI is extension which utilizes ChatGPT to accelerate the translation process in TYPO3 CMS by leveraging Artificial Intelligence powerful natural language processing capabilities.",
+  "license": "GPL-2.0-or-later",
+  "type": "typo3-cms-extension",
+  "version": "1.0.0",
+  "authors": [
+    {
+      "name": "Łukasz Uznański",
+      "role": "Head",
+      "homepage": "https://macopedia.com"
+    },
+    {
+      "name": "Oskar Dydo",
+      "role": "Developer",
+      "homepage": "https://macopedia.com"
+    }
+  ],
+  "require": {
+    "typo3/cms-core": "^11.5"
+  },
+  "autoload": {
+    "psr-4": {
+      "TYPO3Headless\\Typo3Ai\\": "Classes"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "TYPO3Headless\\Typo3Ai\\Tests\\": "Tests"
+    }
+  },
+  "extra": {
+    "typo3/cms": {
+      "extension-key": "typo3_ai"
+    }
+  },
+  "minimum-stability": "stable"
+}

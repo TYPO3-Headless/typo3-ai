@@ -1,0 +1,11 @@
+services:
+  _defaults:
+    autowire: true
+    autoconfigure: true
+    public: false
+
+  TYPO3Headless\Typo3Ai\:
+    resource: '../Classes/*'
+
+  TYPO3Headless\Typo3Ai\Hook\AddTranslateButton:
+    public: true

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<xliff version="1.0">
+    <file source-language="en" datatype="plaintext" original="messages" product-name="typo3_ai">
+        <header/>
+        <body>
+            <trans-unit id="chatgpt.secret" xml:space="preserve">
+				<source>ChatGPT secret API key</source>
+			</trans-unit>
+            <trans-unit id="chatgpt.id" xml:space="preserve">
+				<source>ChatGPT id</source>
+			</trans-unit>
+            <trans-unit id="translateAi" xml:space="preserve">
+				<source>Translate by AI</source>
+			</trans-unit>
+        </body>
+    </file>
+</xliff>
