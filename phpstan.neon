@@ -14,9 +14,7 @@ parameters:
   paths:
     - Classes
     - Configuration
-    - Tests
 
   scanDirectories:
     - Classes
     - Configuration
-    - Tests

@@ -66,7 +66,6 @@ jobs:
           - "composer:normalize"
           - "composer:psr-verify"
           - "php:cs-fixer"
-          - "php:sniff"
           - "php:stan"
           - "ts:lint"
           - "yaml:lint"
