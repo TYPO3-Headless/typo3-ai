@@ -17,7 +17,7 @@ Type `composer require typo3headless/typo3_ai`
 
 ## Features
 1. Create translation of page or content element just by one click!
-[![translation](https://github.com/TYPO3-Headless/typo3_ai/tree/main/Resources/Public/example.png)](https://github.com/TYPO3-Headless/typo3_ai)
+[![translation](https://github.com/TYPO3-Headless/typo3_ai/blob/main/Resources/Public/Image/example.png)](https://github.com/TYPO3-Headless/typo3_ai)
 
 
 ## Configuration
