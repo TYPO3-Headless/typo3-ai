@@ -14,20 +14,18 @@ namespace TYPO3Headless\Typo3Ai\Service;
  * source code.
  */
 
-
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 class TranslationService
 {
-
     protected string $apiKey = '';
 
     protected string $apiId = '';
 
     protected string $mainTranslator = 'chatgpt';
 
-    protected $client = null;
+    protected $client;
 
     public function __construct()
     {
@@ -60,9 +58,10 @@ class TranslationService
                     'messages' => [
                         [
                             'role' => 'user',
-                            'content' => 'I want you to translate following text to (keep html unchanged) ' . $languageToTranslate . $context . ': ' . $textToTranslate
-                        ]
-                    ]
+                            'content' => 'I want you to translate following text to (keep html unchanged) ' .
+                                $languageToTranslate . $context . ': ' . $textToTranslate,
+                        ],
+                    ],
                 ]
             );
 

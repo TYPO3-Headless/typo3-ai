@@ -14,7 +14,6 @@ namespace TYPO3Headless\Typo3Ai\Controller;
  * source code.
  */
 
-use TYPO3Headless\Typo3Ai\Service\TranslationService;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
@@ -25,10 +24,10 @@ use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Mvc\Controller\ActionController;
+use TYPO3Headless\Typo3Ai\Service\TranslationService;
 
 class TranslationController extends ActionController
 {
-
     public function __construct(protected ConnectionPool $connectionPool)
     {
     }
@@ -43,9 +42,11 @@ class TranslationController extends ActionController
                 $uid = key($config);
 
                 foreach ($GLOBALS['TCA'][$table]['columns'] as $columnName => $columnConfig) {
-                    if (!isset($columnConfig['config']['renderType'])
+                    if (
+                        !isset($columnConfig['config']['renderType'])
                         && !isset($columnConfig['config']['valuePicker'])
-                        && in_array($columnConfig['config']['type'], ['text', 'input'])) {
+                        && in_array($columnConfig['config']['type'], ['text', 'input'])
+                    ) {
                         $eval = isset($columnConfig['config']['eval']) && $columnConfig['config']['eval'] === 'int';
 
                         if ($eval === false) {
@@ -110,6 +111,7 @@ class TranslationController extends ActionController
 
                             $queryBuilder->executeStatement();
                         } catch (\Exception $exception) {
+                            //
                         }
                     }
                 }

@@ -31,7 +31,6 @@ class AddTranslateButton
     ) {
     }
 
-
     public function getButtons(array $params, ButtonBar $buttonBar): array
     {
         $buttons = $params['buttons'];
