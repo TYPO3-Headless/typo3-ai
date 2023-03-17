@@ -19,8 +19,10 @@ use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
+use TYPO3\CMS\Core\Http\HtmlResponse;
 use TYPO3\CMS\Core\Http\RedirectResponse;
 use TYPO3\CMS\Core\Localization\LanguageService;
+use TYPO3\CMS\Core\Site\Entity\Site;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Mvc\Controller\ActionController;
@@ -28,24 +30,31 @@ use TYPO3Headless\Typo3Ai\Service\TranslationService;
 
 class TranslationController extends ActionController
 {
-    public function __construct(protected ConnectionPool $connectionPool)
-    {
+    public function __construct(
+        protected ConnectionPool $connectionPool,
+        protected TranslationService $translationService,
+        protected SiteFinder $siteFinder
+    ) {
     }
 
     public function translateAction(ServerRequestInterface $request): ResponseInterface
     {
-        if ($request->getQueryParams()['edit'] && $this->getBackendUser()->isAdmin()) {
-            $translationService = GeneralUtility::makeInstance(TranslationService::class);
-            $columns = ['sys_language_uid', 'pid', 'uid'];
-
+        if ($this->isValidRequest($request) && $this->userHasCorrectPermissions($this->getBackendUser())) {
             foreach ($request->getQueryParams()['edit'] as $table => $config) {
+                $languageField = $this->translationService->getLanguageFieldForTable($table);
+
+                if ($languageField === null) {
+                    continue;
+                }
+
+                $columns = ['pid', 'uid', $languageField];
                 $uid = key($config);
 
                 foreach ($GLOBALS['TCA'][$table]['columns'] as $columnName => $columnConfig) {
                     if (
                         !isset($columnConfig['config']['renderType'])
                         && !isset($columnConfig['config']['valuePicker'])
-                        && in_array($columnConfig['config']['type'], ['text', 'input'])
+                        && in_array($columnConfig['config']['type'], ['text', 'input'], true)
                     ) {
                         $eval = isset($columnConfig['config']['eval']) && $columnConfig['config']['eval'] === 'int';
 
@@ -55,70 +64,142 @@ class TranslationController extends ActionController
                     }
                 }
 
-                $queryBuilder = $this->connectionPool->getQueryBuilderForTable($table);
+                $element = $this->getElementByUid($columns, $table, (int)$uid);
 
-                if ($columns !== []) {
-                    $queryBuilder->getRestrictions()->removeAll()->add(
-                        GeneralUtility::makeInstance(DeletedRestriction::class)
-                    );
+                if ($element === []) {
+                    return $this->returnToEditElement($request);
+                }
 
-                    $element = $queryBuilder
-                        ->select(...$columns)
-                        ->from($table)
-                        ->where($queryBuilder->expr()->eq('uid', $queryBuilder->createNamedParameter($uid)))
-                        ->executeQuery()
-                        ->fetchAssociative();
+                $site = $this->getSiteForElement($element, $table);
 
-                    if ($table === 'pages') {
-                        $pid = $element['uid'];
-                    } else {
-                        $pid = $element['pid'];
+                $languageUid = $element[$languageField];
+
+                if ($languageUid !== 0) {
+                    $this->returnToEditElement($request);
+                }
+
+                try {
+                    $this->translateElement($element, $this->getIsoCodeForLanguage($site, $languageUid));
+
+                    if (count($element) === 0) {
+                        return $this->returnToEditElement($request);
                     }
 
-                    $site = GeneralUtility::makeInstance(SiteFinder::class)->getSiteByPageId($pid);
-
-                    $languageUid = $element['sys_language_uid'];
-                    if ($languageUid !== 0) {
-                        try {
-                            $siteLanguage = $site->getLanguageById($languageUid);
-
-                            $translateTo = $siteLanguage->getTwoLetterIsoCode();
-
-                            foreach ($element as $columnName => $value) {
-                                if (!is_numeric($value) && !empty($value)) {
-                                    $translation = $translationService->translate($value, $translateTo);
-
-                                    if ($translation !== null) {
-                                        $element[$columnName] = trim($translation);
-                                        continue;
-                                    }
-                                }
-
-                                unset($element[$columnName]);
-                            }
-
-                            $queryBuilder = $this->connectionPool->getQueryBuilderForTable($table);
-
-                            $queryBuilder
-                                ->update($table)
-                                ->where(
-                                    $queryBuilder->expr()->eq('uid', $queryBuilder->createNamedParameter($uid))
-                                );
-
-                            foreach ($element as $column => $value) {
-                                $queryBuilder->set($column, $value);
-                            }
-
-                            $queryBuilder->executeStatement();
-                        } catch (\Exception $exception) {
-                            //
-                        }
-                    }
+                    $this->updateElement($table, $uid, $element);
+                } catch (\Exception $exception) {
                 }
             }
+
+            return $this->returnToEditElement($request);
         }
 
-        return new RedirectResponse($request->getQueryParams()['returnUrl']);
+        return $this->returnToEditElement($request);
+    }
+
+    protected function translateElement(array &$element, string $translateTo): void
+    {
+        if ($translateTo === '' || $element === []) {
+            $element = [];
+            return;
+        }
+
+        foreach ($element as $columnName => $value) {
+            if (is_string($value) && !is_numeric($value)) {
+                $translation = $this->translationService->translate($value, $translateTo);
+
+                if ($translation !== null) {
+                    $element[$columnName] = trim($translation);
+                    continue;
+                }
+            }
+
+            unset($element[$columnName]);
+        }
+    }
+
+    protected function updateElement(string $table, int $uid, array $element): void
+    {
+        $queryBuilder = $this->connectionPool->getQueryBuilderForTable($table);
+
+        $queryBuilder
+            ->update($table)
+            ->where(
+                $queryBuilder->expr()->eq('uid', $queryBuilder->createNamedParameter($uid))
+            );
+
+        foreach ($element as $column => $value) {
+            $queryBuilder->set($column, $value);
+        }
+
+        $queryBuilder->executeStatement();
+    }
+
+    protected function getElementByUid(array $columns, string $table, int $uid): array
+    {
+        if ($columns === []) {
+            return [];
+        }
+
+        $queryBuilder = $this->connectionPool->getQueryBuilderForTable($table);
+        $queryBuilder->getRestrictions()->removeAll()->add(
+            GeneralUtility::makeInstance(DeletedRestriction::class)
+        );
+
+        $element = $queryBuilder
+            ->select(...$columns)
+            ->from($table)
+            ->where($queryBuilder->expr()->eq('uid', $queryBuilder->createNamedParameter($uid)))
+            ->executeQuery()
+            ->fetchAssociative();
+
+        if (is_array($element)) {
+            return $element;
+        }
+
+        return [];
+    }
+
+    protected function getSiteForElement(array $element, string $table): Site
+    {
+        if ($table === 'pages') {
+            $pid = $element['uid'];
+        } else {
+            $pid = $element['pid'];
+        }
+
+        return $this->siteFinder->getSiteByPageId($pid);
+    }
+
+    protected function returnToEditElement(ServerRequestInterface $request): ResponseInterface
+    {
+        if (isset($request->getQueryParams()['returnUrl'])) {
+            return new RedirectResponse($request->getQueryParams()['returnUrl']);
+        }
+
+        $errorMessage = $this->getLanguageService()->sL(
+            'LLL:EXT:typo3_ai/Resources/Private/Language/locallang.xlf:error.unknownReturnUrl'
+        );
+
+        if ($errorMessage === '') {
+            $errorMessage = 'TYPO3_AI: error occurred during execution.';
+        }
+
+        return new HtmlResponse('<span>' . $errorMessage . '</span>');
+    }
+
+    protected function isValidRequest(ServerRequestInterface $request): bool
+    {
+        return isset($request->getQueryParams()['edit']) && $request->getQueryParams()['edit'];
+    }
+
+    protected function userHasCorrectPermissions(BackendUserAuthentication $beUser): bool
+    {
+        return $beUser->isAdmin();
+    }
+
+    protected function getIsoCodeForLanguage(Site $site, int $languageUid): string
+    {
+        return $site->getLanguageById($languageUid)->getTwoLetterIsoCode();
     }
 
     /**

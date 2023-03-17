@@ -12,6 +12,9 @@
             <trans-unit id="translateAi" xml:space="preserve">
 				<source>Translate by AI</source>
 			</trans-unit>
+            <trans-unit id="error.unknownReturnUrl" xml:space="preserve">
+				<source>TYPO3_AI: error occurred during execution</source>
+			</trans-unit>
         </body>
     </file>
 </xliff>
