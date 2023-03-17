@@ -21,6 +21,8 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 class TranslationService
 {
+    public const NO_TRANSLATION = 'NO_TRANSLATION';
+
     protected string $apiKey = '';
 
     protected string $apiId = '';
@@ -55,7 +57,7 @@ class TranslationService
             && !is_numeric($textToTranslate)
         ) {
             if ($context !== '') {
-                $context = ' context of this translation is ' . $context;
+                $context = ' using following context in brackets as reference [' . $context . ']';
             }
 
             $client = $this->client->chat()->create(
@@ -64,14 +66,24 @@ class TranslationService
                     'messages' => [
                         [
                             'role' => 'user',
-                            'content' => 'I want you to translate following text to (keep html unchanged) ' .
-                                $languageToTranslate . $context . ': ' . $textToTranslate,
+                            'content' => 'Translate text (keep html unchanged) after next semi-colon to ' .
+                                $languageToTranslate . ' ' . $context . ' or write \'' . self::NO_TRANSLATION . '\'; ' . $textToTranslate,
                         ],
                     ],
                 ]
             );
 
-            return $client->choices[0]->message->content;
+            if (!isset($client->choices[0])) {
+                return null;
+            }
+
+            $message = $client->choices[0]->message->content;
+
+            if (str_contains($message, self::NO_TRANSLATION)) {
+                return null;
+            }
+
+            return $message;
         }
 
         return null;
