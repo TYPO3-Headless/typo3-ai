@@ -14,6 +14,7 @@ namespace TYPO3Headless\Typo3Ai\Service;
  * source code.
  */
 
+use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -104,5 +105,15 @@ class TranslationService
     public function getLanguageFieldForTable(string $tableName): ?string
     {
         return $GLOBALS['TCA'][$tableName]['ctrl']['languageField'] ?? null;
+    }
+
+    public function hasCurrentUserCorrectPermisions(): bool
+    {
+        return $this->getBackendUser()->isAdmin();
+    }
+
+    protected function getBackendUser(): BackendUserAuthentication
+    {
+        return $GLOBALS['BE_USER'];
     }
 }
