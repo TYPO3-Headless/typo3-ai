@@ -29,6 +29,6 @@ Type `composer require typo3headless/typo3_ai`
 ## Requirements
 You need at least `TYPO3 v11` and `PHP 8.1`.
 ## Contact
-`TYPO3 AI` is brought to you by Macopedia with a big support of the community.
+`TYPO3 AI` is brought to you by [Macopedia](https://macopedia.com/) with a big support of the community.
 
 [Contact us](https://macopedia.com/contact)
