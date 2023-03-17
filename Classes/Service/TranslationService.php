@@ -15,6 +15,7 @@ namespace TYPO3Headless\Typo3Ai\Service;
  */
 
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
+use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 class TranslationService
@@ -27,7 +28,7 @@ class TranslationService
 
     protected $client;
 
-    public function __construct()
+    public function __construct(protected ConnectionPool $connectionPool)
     {
         $extensionConfiguration = GeneralUtility::makeInstance(ExtensionConfiguration::class);
         $apiConfiguration = $extensionConfiguration->get('typo3_ai', 'api');
@@ -40,14 +41,18 @@ class TranslationService
             $this->apiId = $apiConfiguration[$this->mainTranslator]['id'];
         }
 
-        if (!empty($this->apiKey) && !empty($this->apiId)) {
+        if ($this->apiKey !== '' && $this->apiId !== '') {
             $this->client = \OpenAI::client($this->apiKey, $this->apiId);
         }
     }
 
     public function translate(string $textToTranslate, string $languageToTranslate, string $context = ''): ?string
     {
-        if ($this->client !== null && $textToTranslate !== '' && $languageToTranslate !== '') {
+        if ($this->client !== null
+            && $textToTranslate !== ''
+            && $languageToTranslate !== ''
+            && !is_numeric($textToTranslate)
+        ) {
             if ($context !== '') {
                 $context = ' context of this translation is ' . $context;
             }
@@ -69,5 +74,35 @@ class TranslationService
         }
 
         return null;
+    }
+
+    public function getLanguageIdForRecordFromDatabase(string $tableName, int $uid): int
+    {
+        $queryBuilder = $this->connectionPool->getQueryBuilderForTable($tableName);
+        $queryBuilder->getRestrictions()->removeAll();
+
+        $languageField = $this->getLanguageFieldForTable($tableName);
+
+        if (!isset($languageField)) {
+            return 0;
+        }
+
+        $record = $queryBuilder
+            ->select($languageField)
+            ->from($tableName)
+            ->where($queryBuilder->expr()->eq('uid', $uid))
+            ->executeQuery()
+            ->fetchAssociative();
+
+        if (!is_array($record)) {
+            return 0;
+        }
+
+        return $record[$languageField];
+    }
+
+    public function getLanguageFieldForTable(string $tableName): ?string
+    {
+        return $GLOBALS['TCA'][$tableName]['ctrl']['languageField'] ?? null;
     }
 }
