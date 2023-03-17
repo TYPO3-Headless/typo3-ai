@@ -17,7 +17,10 @@ This not only saves time but also increases translation accuracy and ensures tha
 Type `composer require typo3headless/typo3_ai`
 
 ## Features
-1. Create translation of page or content element just by one click!
+Create translation of page or content element just by one click:
+1. Go to your content element in desired language (not default).
+2. Click on new button `Translate by AI`.
+3. You have new translaton of your element!
 [![translation](https://github.com/TYPO3-Headless/typo3_ai/blob/main/Resources/Public/Image/example.png)](https://github.com/TYPO3-Headless/typo3_ai)
 
 
