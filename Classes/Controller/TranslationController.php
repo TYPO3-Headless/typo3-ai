@@ -22,6 +22,8 @@ use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\Http\HtmlResponse;
 use TYPO3\CMS\Core\Http\RedirectResponse;
 use TYPO3\CMS\Core\Localization\LanguageService;
+use TYPO3\CMS\Core\Messaging\FlashMessage;
+use TYPO3\CMS\Core\Messaging\FlashMessageService;
 use TYPO3\CMS\Core\Site\Entity\Site;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -32,6 +34,7 @@ class TranslationController extends ActionController
 {
     public function __construct(
         protected ConnectionPool $connectionPool,
+        protected FlashMessageService $flashMessageService,
         protected TranslationService $translationService,
         protected SiteFinder $siteFinder
     ) {
@@ -44,6 +47,7 @@ class TranslationController extends ActionController
                 $languageField = $this->translationService->getLanguageFieldForTable($table);
 
                 if ($languageField === null) {
+                    $this->addWarningMessage($this->getLocallangTranslation('warning.languageField'));
                     continue;
                 }
 
@@ -67,6 +71,7 @@ class TranslationController extends ActionController
                 $element = $this->getElementByUid($columns, $table, (int)$uid);
 
                 if ($element === []) {
+                    $this->addWarningMessage($this->getLocallangTranslation('warning.missingElement'));
                     return $this->returnToEditElement($request);
                 }
 
@@ -74,19 +79,28 @@ class TranslationController extends ActionController
 
                 $languageUid = $element[$languageField];
 
-                if ($languageUid !== 0) {
-                    $this->returnToEditElement($request);
+                if ($languageUid === 0) {
+                    $this->addWarningMessage($this->getLocallangTranslation('warning.defaultLanguage'));
+                    return $this->returnToEditElement($request);
                 }
 
                 try {
                     $this->translateElement($element, $this->getIsoCodeForLanguage($site, $languageUid));
 
-                    if (count($element) === 0) {
+                    if ($element === []) {
+                        $this->addWarningMessage($this->getLocallangTranslation('warning.emptyAfterTranslation'));
                         return $this->returnToEditElement($request);
                     }
 
                     $this->updateElement($table, $uid, $element);
+
+                    $affectedColumns = implode(', ', array_keys($element));
+
+                    $successMessage = $this->getLocallangTranslation('success.translationCompleted.message');
+
+                    $this->addSuccessMessage($successMessage . ' ' . $affectedColumns);
                 } catch (\Exception $exception) {
+                    $this->addErrorMessage($exception->getMessage());
                 }
             }
 
@@ -107,7 +121,7 @@ class TranslationController extends ActionController
             if (is_string($value) && !is_numeric($value)) {
                 $translation = $this->translationService->translate($value, $translateTo);
 
-                if ($translation !== null) {
+                if ($translation !== null && $translation !== TranslationService::NO_TRANSLATION) {
                     $element[$columnName] = trim($translation);
                     continue;
                 }
@@ -176,9 +190,7 @@ class TranslationController extends ActionController
             return new RedirectResponse($request->getQueryParams()['returnUrl']);
         }
 
-        $errorMessage = $this->getLanguageService()->sL(
-            'LLL:EXT:typo3_ai/Resources/Private/Language/locallang.xlf:error.unknownReturnUrl'
-        );
+        $errorMessage = $this->getLocallangTranslation('error.unknownReturnUrl.message');
 
         if ($errorMessage === '') {
             $errorMessage = 'TYPO3_AI: error occurred during execution.';
@@ -200,6 +212,61 @@ class TranslationController extends ActionController
     protected function getIsoCodeForLanguage(Site $site, int $languageUid): string
     {
         return $site->getLanguageById($languageUid)->getTwoLetterIsoCode();
+    }
+
+    protected function addFlashMessageWithSeverity(
+        string $title,
+        string $message,
+        int $severity = FlashMessage::OK
+    ): void {
+        $query = $this->flashMessageService->getMessageQueueByIdentifier();
+
+        $flashMessage = GeneralUtility::makeInstance(
+            FlashMessage::class,
+            $message,
+            $title,
+            $severity,
+            true
+        );
+
+        $query->addMessage($flashMessage);
+    }
+
+    protected function addSuccessMessage(string $message, string $title = ''): void
+    {
+        if ($title === '') {
+            $title = $this->getLocallangTranslation('success.title');
+        }
+
+        $this->addFlashMessageWithSeverity($title, $message);
+    }
+
+    protected function addInfoMessage(string $message, string $title = ''): void
+    {
+        if ($title === '') {
+            $title = $this->getLocallangTranslation('info.title');
+        }
+
+        $this->addFlashMessageWithSeverity($title, $message, FlashMessage::INFO);
+    }
+
+    protected function addWarningMessage(string $message): void
+    {
+        $this->addFlashMessageWithSeverity('', $message, FlashMessage::WARNING);
+    }
+
+    protected function addErrorMessage(string $message, string $title = ''): void
+    {
+        if ($title === '') {
+            $title = $this->getLocallangTranslation('error.title');
+        }
+
+        $this->addFlashMessageWithSeverity($title, $message, FlashMessage::ERROR);
+    }
+
+    protected function getLocallangTranslation(string $id): string
+    {
+        return $this->getLanguageService()->sL('LLL:EXT:typo3_ai/Resources/Private/Language/locallang.xlf:' . $id);
     }
 
     /**
