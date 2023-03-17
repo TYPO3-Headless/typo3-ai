@@ -12,7 +12,31 @@
             <trans-unit id="translateAi" xml:space="preserve">
 				<source>Translate by AI</source>
 			</trans-unit>
-            <trans-unit id="error.unknownReturnUrl" xml:space="preserve">
+            <trans-unit id="info.title" xml:space="preserve">
+				<source>Info</source>
+			</trans-unit>
+            <trans-unit id="success.title" xml:space="preserve">
+				<source>Success</source>
+			</trans-unit>
+            <trans-unit id="warning.languageField" xml:space="preserve">
+				<source>There seems to be TCA misconfiguration: 'languageField' is missing</source>
+			</trans-unit>
+            <trans-unit id="warning.missingElement" xml:space="preserve">
+				<source>Couldn't find element in database</source>
+			</trans-unit>
+            <trans-unit id="warning.defaultLanguage" xml:space="preserve">
+				<source>You can't translate default language</source>
+			</trans-unit>
+            <trans-unit id="warning.emptyAfterTranslation" xml:space="preserve">
+				<source>There was nothing to translate</source>
+			</trans-unit>
+            <trans-unit id="success.translationCompleted.message" xml:space="preserve">
+				<source>Following fields have been translated:</source>
+			</trans-unit>
+            <trans-unit id="error.title" xml:space="preserve">
+				<source>Error</source>
+			</trans-unit>
+            <trans-unit id="error.unknownReturnUrl.message" xml:space="preserve">
 				<source>TYPO3_AI: error occurred during execution</source>
 			</trans-unit>
         </body>
