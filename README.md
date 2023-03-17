@@ -23,8 +23,11 @@ Type `composer require typo3headless/typo3_ai`
 
 ## Configuration
 1. Create an account on website: https://platform.openai.com/
-2. Create new secret-key
-3. Add it to your extension configuration and you are ready to go!
+2. Go to https://platform.openai.com/account/org-settings and copy your org id.
+3. Go to `Settings` and `Extension Configuration`, set it as `ChatGPT id`.
+4. Create new secret key on site https://platform.openai.com/account/api-keys
+5. Go to `Settings` and `Extension Configuration`, set it as `ChatGPT secret api key`.
+[![configuration](https://github.com/TYPO3-Headless/typo3_ai/blob/main/Resources/Public/Image/configuration.png)](https://github.com/TYPO3-Headless/typo3_ai)
 
 ## Requirements
 You need at least `TYPO3 v11` and `PHP 8.1`.
