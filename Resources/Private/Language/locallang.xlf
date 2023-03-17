@@ -31,7 +31,7 @@
 				<source>There was nothing to translate</source>
 			</trans-unit>
             <trans-unit id="success.translationCompleted.message" xml:space="preserve">
-				<source>Success</source>
+				<source>Following fields have been translated:</source>
 			</trans-unit>
             <trans-unit id="error.title" xml:space="preserve">
 				<source>Error</source>
