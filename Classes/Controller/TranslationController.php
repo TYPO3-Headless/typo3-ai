@@ -121,7 +121,7 @@ class TranslationController extends ActionController
             if (is_string($value) && !is_numeric($value)) {
                 $translation = $this->translationService->translate($value, $translateTo);
 
-                if ($translation !== null && $translation !== TranslationService::NO_TRANSLATION) {
+                if ($translation !== null) {
                     $element[$columnName] = trim($translation);
                     continue;
                 }
