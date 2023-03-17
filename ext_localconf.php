@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-defined('TYPO3_MODE') || die();
+defined('TYPO3') or die('Access denied.');
 
 call_user_func(
     static function ($extensionKey) {
