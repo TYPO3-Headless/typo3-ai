@@ -35,7 +35,7 @@ class AddTranslateButton
     {
         $buttons = $params['buttons'];
 
-        if (isset($GLOBALS['TYPO3_REQUEST'])) {
+        if (isset($GLOBALS['TYPO3_REQUEST']) && $this->translationService->hasCurrentUserCorrectPermisions()) {
             $route = $GLOBALS['TYPO3_REQUEST']->getAttribute('route');
 
             if ($route->getPath() !== '/record/edit') {

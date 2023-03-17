@@ -16,7 +16,6 @@ namespace TYPO3Headless\Typo3Ai\Controller;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\Http\HtmlResponse;
@@ -42,7 +41,7 @@ class TranslationController extends ActionController
 
     public function translateAction(ServerRequestInterface $request): ResponseInterface
     {
-        if ($this->isValidRequest($request) && $this->userHasCorrectPermissions($this->getBackendUser())) {
+        if ($this->isValidRequest($request) && $this->translationService->hasCurrentUserCorrectPermisions()) {
             foreach ($request->getQueryParams()['edit'] as $table => $config) {
                 $languageField = $this->translationService->getLanguageFieldForTable($table);
 
@@ -204,11 +203,6 @@ class TranslationController extends ActionController
         return isset($request->getQueryParams()['edit']) && $request->getQueryParams()['edit'];
     }
 
-    protected function userHasCorrectPermissions(BackendUserAuthentication $beUser): bool
-    {
-        return $beUser->isAdmin();
-    }
-
     protected function getIsoCodeForLanguage(Site $site, int $languageUid): string
     {
         return $site->getLanguageById($languageUid)->getTwoLetterIsoCode();
@@ -275,15 +269,5 @@ class TranslationController extends ActionController
     protected function getLanguageService(): LanguageService
     {
         return $GLOBALS['LANG'];
-    }
-
-    /**
-     * Returns the current BE user.
-     *
-     * @return BackendUserAuthentication
-     */
-    protected function getBackendUser(): BackendUserAuthentication
-    {
-        return $GLOBALS['BE_USER'];
     }
 }
