@@ -20,6 +20,7 @@ use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3Headless\Typo3Ai\Service\TcaService;
 use TYPO3Headless\Typo3Ai\Service\TranslationService;
 
 class AddTranslateButton
@@ -27,7 +28,8 @@ class AddTranslateButton
     public function __construct(
         protected UriBuilder $uriBuilder,
         protected IconFactory $iconFactory,
-        protected TranslationService $translationService
+        protected TranslationService $translationService,
+        protected TcaService $tcaService
     ) {
     }
 
@@ -51,7 +53,11 @@ class AddTranslateButton
             $tableName = key($editParameters);
             $uid = key($editParameters[$tableName]);
 
-            $language = $this->translationService->getLanguageIdForRecordFromDatabase($tableName, $uid);
+            $language = $this->translationService->getLanguageIdForRecordFromDatabase(
+                $tableName,
+                $uid,
+                $this->tcaService->getLanguageFieldForTable($tableName)
+            );
 
             if ($language === 0) {
                 return $buttons;

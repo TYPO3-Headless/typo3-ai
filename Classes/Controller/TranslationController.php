@@ -16,8 +16,6 @@ namespace TYPO3Headless\Typo3Ai\Controller;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use TYPO3\CMS\Core\Database\ConnectionPool;
-use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\Http\HtmlResponse;
 use TYPO3\CMS\Core\Http\RedirectResponse;
 use TYPO3\CMS\Core\Localization\LanguageService;
@@ -27,12 +25,15 @@ use TYPO3\CMS\Core\Site\Entity\Site;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Mvc\Controller\ActionController;
+use TYPO3Headless\Typo3Ai\Service\DatabaseService;
+use TYPO3Headless\Typo3Ai\Service\TcaService;
 use TYPO3Headless\Typo3Ai\Service\TranslationService;
 
 class TranslationController extends ActionController
 {
     public function __construct(
-        protected ConnectionPool $connectionPool,
+        protected DatabaseService $databaseService,
+        protected TcaService $tcaService,
         protected FlashMessageService $flashMessageService,
         protected TranslationService $translationService,
         protected SiteFinder $siteFinder
@@ -43,31 +44,21 @@ class TranslationController extends ActionController
     {
         if ($this->isValidRequest($request) && $this->translationService->hasCurrentUserCorrectPermisions()) {
             foreach ($request->getQueryParams()['edit'] as $table => $config) {
-                $languageField = $this->translationService->getLanguageFieldForTable($table);
+                $languageField = $this->tcaService->getLanguageFieldForTable($table);
 
-                if ($languageField === null) {
+                if ($languageField === '') {
                     $this->addWarningMessage($this->getLocallangTranslation('warning.languageField'));
                     continue;
                 }
 
                 $columns = ['pid', 'uid', $languageField];
-                $uid = key($config);
+                $uid = (int)key($config);
 
-                foreach ($GLOBALS['TCA'][$table]['columns'] as $columnName => $columnConfig) {
-                    if (
-                        !isset($columnConfig['config']['renderType'])
-                        && !isset($columnConfig['config']['valuePicker'])
-                        && in_array($columnConfig['config']['type'], ['text', 'input'], true)
-                    ) {
-                        $eval = isset($columnConfig['config']['eval']) && $columnConfig['config']['eval'] === 'int';
-
-                        if ($eval === false) {
-                            $columns[] = $columnName;
-                        }
-                    }
-                }
-
-                $element = $this->getElementByUid($columns, $table, (int)$uid);
+                $element = $this->databaseService->getElementByUid(
+                    $this->tcaService->getTranslatableColumns($table, $columns),
+                    $table,
+                    $uid
+                );
 
                 if ($element === []) {
                     $this->addWarningMessage($this->getLocallangTranslation('warning.missingElement'));
@@ -84,14 +75,18 @@ class TranslationController extends ActionController
                 }
 
                 try {
-                    $this->translateElement($element, $this->getIsoCodeForLanguage($site, $languageUid));
+                    $this->translationService->translateArrayToLanguage(
+                        $element,
+                        $this->getIsoCodeForLanguage($site, $languageUid),
+                        true
+                    );
 
                     if ($element === []) {
                         $this->addWarningMessage($this->getLocallangTranslation('warning.emptyAfterTranslation'));
                         return $this->returnToEditElement($request);
                     }
 
-                    $this->updateElement($table, $uid, $element);
+                    $this->databaseService->updateElement($table, $uid, $element);
 
                     $affectedColumns = implode(', ', array_keys($element));
 
@@ -107,69 +102,6 @@ class TranslationController extends ActionController
         }
 
         return $this->returnToEditElement($request);
-    }
-
-    protected function translateElement(array &$element, string $translateTo): void
-    {
-        if ($translateTo === '' || $element === []) {
-            $element = [];
-            return;
-        }
-
-        foreach ($element as $columnName => $value) {
-            if (is_string($value) && !is_numeric($value)) {
-                $translation = $this->translationService->translate($value, $translateTo);
-
-                if ($translation !== null) {
-                    $element[$columnName] = trim($translation);
-                    continue;
-                }
-            }
-
-            unset($element[$columnName]);
-        }
-    }
-
-    protected function updateElement(string $table, int $uid, array $element): void
-    {
-        $queryBuilder = $this->connectionPool->getQueryBuilderForTable($table);
-
-        $queryBuilder
-            ->update($table)
-            ->where(
-                $queryBuilder->expr()->eq('uid', $queryBuilder->createNamedParameter($uid))
-            );
-
-        foreach ($element as $column => $value) {
-            $queryBuilder->set($column, $value);
-        }
-
-        $queryBuilder->executeStatement();
-    }
-
-    protected function getElementByUid(array $columns, string $table, int $uid): array
-    {
-        if ($columns === []) {
-            return [];
-        }
-
-        $queryBuilder = $this->connectionPool->getQueryBuilderForTable($table);
-        $queryBuilder->getRestrictions()->removeAll()->add(
-            GeneralUtility::makeInstance(DeletedRestriction::class)
-        );
-
-        $element = $queryBuilder
-            ->select(...$columns)
-            ->from($table)
-            ->where($queryBuilder->expr()->eq('uid', $queryBuilder->createNamedParameter($uid)))
-            ->executeQuery()
-            ->fetchAssociative();
-
-        if (is_array($element)) {
-            return $element;
-        }
-
-        return [];
     }
 
     protected function getSiteForElement(array $element, string $table): Site

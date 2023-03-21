@@ -18,90 +18,39 @@ use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3Headless\Typo3Ai\Credentials\DefaultCredentials;
+use TYPO3Headless\Typo3Ai\Factory\AdapterFactory;
+use TYPO3Headless\Typo3Ai\Factory\TypeFactory;
+use TYPO3Headless\Typo3Ai\ModelType\ChatGptModelType;
+use TYPO3Headless\Typo3Ai\ModelType\ModelTypeInterface;
+use TYPO3Headless\Typo3Ai\TranslationAdapter\OpenAiPhpTranslationAdapter;
+use TYPO3Headless\Typo3Ai\TranslationAdapter\TranslationAdapterInterface;
 
 class TranslationService
 {
-    public const NO_TRANSLATION = 'NO_TRANSLATION';
+    protected ?TranslationAdapterInterface $adapter = null;
 
-    protected string $apiKey = '';
+    protected array $adapterCache = [];
 
-    protected string $apiId = '';
-
-    protected string $mainTranslator = 'chatgpt';
-
-    protected $client;
-
-    public function __construct(protected ConnectionPool $connectionPool)
-    {
-        $extensionConfiguration = GeneralUtility::makeInstance(ExtensionConfiguration::class);
-        $apiConfiguration = $extensionConfiguration->get('typo3_ai', 'api');
-
-        if (isset($apiConfiguration[$this->mainTranslator]['secret'])) {
-            $this->apiKey = $apiConfiguration[$this->mainTranslator]['secret'];
-        }
-
-        if (isset($apiConfiguration[$this->mainTranslator]['id'])) {
-            $this->apiId = $apiConfiguration[$this->mainTranslator]['id'];
-        }
-
-        if ($this->apiKey !== '' && $this->apiId !== '') {
-            $this->client = \OpenAI::client($this->apiKey, $this->apiId);
-        }
+    public function __construct(
+        protected ConnectionPool $connectionPool,
+        protected ExtensionConfiguration $extensionConfiguration,
+        protected AdapterFactory $adapterFactory,
+        protected TypeFactory $typeFactory
+    ) {
     }
 
-    public function translate(string $textToTranslate, string $languageToTranslate, string $context = ''): ?string
-    {
-        if ($this->client !== null
-            && $textToTranslate !== ''
-            && $languageToTranslate !== ''
-            && !is_numeric($textToTranslate)
-        ) {
-            if ($context !== '') {
-                $context = ' using following context in brackets as reference [' . $context . ']';
-            }
-
-            $client = $this->client->chat()->create(
-                [
-                    'model' => 'gpt-3.5-turbo',
-                    'messages' => [
-                        [
-                            'role' => 'user',
-                            'content' => 'Translate text (keep html unchanged) after next semi-colon to ' .
-                                $languageToTranslate . ' ' . $context . ' or write \'' . self::NO_TRANSLATION . '\'; ' . $textToTranslate,
-                        ],
-                    ],
-                ]
-            );
-
-            if (!isset($client->choices[0])) {
-                return null;
-            }
-
-            $message = $client->choices[0]->message->content;
-
-            if (str_contains($message, self::NO_TRANSLATION)) {
-                return null;
-            }
-
-            return $message;
-        }
-
-        return null;
-    }
-
-    public function getLanguageIdForRecordFromDatabase(string $tableName, int $uid): int
+    public function getLanguageIdForRecordFromDatabase(string $tableName, int $uid, string $languageColumn = ''): int
     {
         $queryBuilder = $this->connectionPool->getQueryBuilderForTable($tableName);
         $queryBuilder->getRestrictions()->removeAll();
 
-        $languageField = $this->getLanguageFieldForTable($tableName);
-
-        if (!isset($languageField)) {
+        if ($languageColumn === '') {
             return 0;
         }
 
         $record = $queryBuilder
-            ->select($languageField)
+            ->select($languageColumn)
             ->from($tableName)
             ->where($queryBuilder->expr()->eq('uid', $uid))
             ->executeQuery()
@@ -111,12 +60,93 @@ class TranslationService
             return 0;
         }
 
-        return $record[$languageField];
+        return $record[$languageColumn];
     }
 
-    public function getLanguageFieldForTable(string $tableName): ?string
+    public function translateTextToLanguage(
+        string $textToTranslate,
+        string $languageToTranslate,
+        string $context = '',
+        string $type = ChatGptModelType::CONFIG_KEY,
+        string $adapterType = OpenAiPhpTranslationAdapter::TYPE
+    ): ?string {
+        $modelType = $this->typeFactory->get($type);
+
+        if (!isset($this->adapterCache[$adapterType])) {
+            $adapter = $this->getTranslationAdapter($modelType, $adapterType);
+            $this->adapterCache[$adapterType] = $adapter;
+        }
+
+        if (isset($this->adapterCache[$adapterType])) {
+            return $this->adapterCache[$adapterType]->translate(
+                $textToTranslate,
+                $languageToTranslate,
+                $context
+            );
+        }
+
+        return null;
+    }
+
+    public function translateArrayToLanguage(
+        array &$element,
+        string $translateTo,
+        bool $removeInvalidValues = false
+    ): void {
+        if ($translateTo === '' || $element === []) {
+            $element = [];
+            return;
+        }
+
+        foreach ($element as $columnName => $value) {
+            if (is_string($value) && !is_numeric($value) && $value !== '') {
+                $translation = $this->translateTextToLanguage($value, $translateTo);
+
+                if ($translation !== null) {
+                    $element[$columnName] = trim($translation);
+                    continue;
+                }
+            }
+
+            if ($removeInvalidValues === true) {
+                unset($element[$columnName]);
+            }
+        }
+    }
+
+    protected function getTranslationAdapter(
+        ModelTypeInterface $modelType,
+        string $adapterType = OpenAiPhpTranslationAdapter::TYPE
+    ): ?TranslationAdapterInterface {
+        $credentials = null;
+        $apiConfiguration = $this->getConfiguration();
+
+        if (isset(
+            $apiConfiguration[$modelType->getConfigKey()]['secret'],
+            $apiConfiguration[$modelType->getConfigKey()]['id']
+        )) {
+            $credentials = GeneralUtility::makeInstance(
+                DefaultCredentials::class,
+                $apiConfiguration[$modelType->getConfigKey()]['id'],
+                $apiConfiguration[$modelType->getConfigKey()]['secret'],
+                $apiConfiguration[$modelType->getConfigKey()]
+            );
+        }
+
+        if ($credentials !== null) {
+            return $this->adapterFactory->get(
+                $adapterType,
+                $credentials,
+                $modelType
+            );
+        }
+
+        return null;
+    }
+
+    protected function getConfiguration()
     {
-        return $GLOBALS['TCA'][$tableName]['ctrl']['languageField'] ?? null;
+        return $this->extensionConfiguration->get('typo3_ai', 'api');
     }
 
     public function hasCurrentUserCorrectPermisions(): bool
