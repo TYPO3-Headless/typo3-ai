@@ -1,5 +1,5 @@
 {
-  "name": "typo3headless/typo3_ai",
+  "name": "typo3headless/typo3-ai",
   "description": "TYPO3 AI is extension which utilizes ChatGPT to accelerate the translation process in TYPO3 CMS by leveraging Artificial Intelligence powerful natural language processing capabilities.",
   "license": "GPL-2.0-or-later",
   "type": "typo3-cms-extension",
