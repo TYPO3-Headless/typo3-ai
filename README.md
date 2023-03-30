@@ -14,7 +14,7 @@ This not only saves time but also increases translation accuracy and ensures tha
 
 
 ## Installation
-Type `composer require typo3headless/typo3_ai`
+Type `composer require typo3headless/typo3-ai`
 
 ## Features
 Create translation of page or content element just by one click:
