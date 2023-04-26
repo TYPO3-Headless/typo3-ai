@@ -33,7 +33,7 @@
     "saschaegerer/phpstan-typo3": "^1.8.3",
     "symfony/yaml": "^5.4 || ^6.1",
     "typo3/coding-standards": "^0.7.1",
-    "typo3/testing-framework": "^6"
+    "typo3/testing-framework": "^7"
   },
   "minimum-stability": "stable",
   "autoload": {
