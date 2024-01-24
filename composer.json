@@ -18,7 +18,7 @@
   "homepage": "https://extensions.typo3.org/extension/typo3_ai/",
   "require": {
     "php": "~8.1.0",
-    "openai-php/client": "^0.8.1",
+    "openai-php/client": "^0.3.5",
     "typo3/cms-core": "^11.5"
   },
   "require-dev": {
@@ -52,8 +52,7 @@
       "phpstan/extension-installer": true,
       "sbuerk/typo3-cmscomposerinstallers-testingframework-bridge": true,
       "typo3/class-alias-loader": true,
-      "typo3/cms-composer-installers": true,
-      "php-http/discovery": true
+      "typo3/cms-composer-installers": true
     },
     "preferred-install": {
       "*": "dist"
