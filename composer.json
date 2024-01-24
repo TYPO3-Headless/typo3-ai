@@ -52,7 +52,8 @@
       "phpstan/extension-installer": true,
       "sbuerk/typo3-cmscomposerinstallers-testingframework-bridge": true,
       "typo3/class-alias-loader": true,
-      "typo3/cms-composer-installers": true
+      "typo3/cms-composer-installers": true,
+      "php-http/discovery": true
     },
     "preferred-install": {
       "*": "dist"
