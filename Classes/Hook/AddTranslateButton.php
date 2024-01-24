@@ -30,8 +30,7 @@ class AddTranslateButton
         protected IconFactory $iconFactory,
         protected TranslationService $translationService,
         protected TcaService $tcaService
-    ) {
-    }
+    ) {}
 
     public function getButtons(array $params, ButtonBar $buttonBar): array
     {

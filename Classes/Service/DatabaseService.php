@@ -20,9 +20,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 class DatabaseService
 {
-    public function __construct(protected ConnectionPool $connectionPool)
-    {
-    }
+    public function __construct(protected ConnectionPool $connectionPool) {}
 
     public function updateElement(string $table, int $uid, array $element): void
     {

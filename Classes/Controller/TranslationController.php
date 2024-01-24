@@ -37,8 +37,7 @@ class TranslationController extends ActionController
         protected FlashMessageService $flashMessageService,
         protected TranslationService $translationService,
         protected SiteFinder $siteFinder
-    ) {
-    }
+    ) {}
 
     public function translateAction(ServerRequestInterface $request): ResponseInterface
     {

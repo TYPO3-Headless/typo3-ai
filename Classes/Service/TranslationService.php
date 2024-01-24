@@ -37,8 +37,7 @@ class TranslationService
         protected ExtensionConfiguration $extensionConfiguration,
         protected AdapterFactory $adapterFactory,
         protected TypeFactory $typeFactory
-    ) {
-    }
+    ) {}
 
     public function getLanguageIdForRecordFromDatabase(string $tableName, int $uid, string $languageColumn = ''): int
     {
