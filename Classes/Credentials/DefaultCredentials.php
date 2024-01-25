@@ -16,9 +16,7 @@ namespace TYPO3Headless\Typo3Ai\Credentials;
 
 class DefaultCredentials implements CredentialsInterface
 {
-    public function __construct(protected string $id, protected string $secret, protected array $data)
-    {
-    }
+    public function __construct(protected string $id, protected string $secret, protected array $data) {}
 
     /**
      * @return string
