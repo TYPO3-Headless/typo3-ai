@@ -7,7 +7,7 @@
 				<source>ChatGPT secret API key</source>
 			</trans-unit>
             <trans-unit id="chatgpt.id" xml:space="preserve">
-				<source>ChatGPT id</source>
+				<source>ChatGPT organization id</source>
 			</trans-unit>
             <trans-unit id="translateAi" xml:space="preserve">
 				<source>Translate by AI</source>

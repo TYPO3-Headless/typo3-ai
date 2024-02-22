@@ -15,10 +15,10 @@ $EM_CONF[$_EXTKEY] = [
     'author_email' => 'extensions@macopedia.pl',
     'author_company' => 'Macopedia Sp. z o.o.',
     'category' => 'be',
-    'version' => '1.1.1',
+    'version' => '2.0.0',
     'constraints' => [
         'depends' => [
-            'typo3' => '12.4.3-12.5.99'
+            'typo3' => '12.4.0-12.4.99'
         ],
         'conflicts' => [],
         'suggests' => [],
