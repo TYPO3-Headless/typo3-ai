@@ -17,7 +17,7 @@
   ],
   "homepage": "https://extensions.typo3.org/extension/typo3_ai/",
   "require": {
-    "php": "~8.1.0",
+    "php": "~8.1",
     "openai-php/client": "^0.8.1",
     "typo3/cms-core": "^12.4"
   },
