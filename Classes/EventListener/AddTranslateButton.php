@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace TYPO3Headless\Typo3Ai\Hook;
+namespace TYPO3Headless\Typo3Ai\EventListener;
 
 /*
  * This file is part of the Macopedia. package.
@@ -22,6 +22,8 @@ use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3Headless\Typo3Ai\Service\TcaService;
 use TYPO3Headless\Typo3Ai\Service\TranslationService;
+use TYPO3\CMS\Backend\Template\Components\ModifyButtonBarEvent;
+
 
 class AddTranslateButton
 {
@@ -32,21 +34,21 @@ class AddTranslateButton
         protected TcaService $tcaService
     ) {}
 
-    public function getButtons(array $params, ButtonBar $buttonBar): array
+    public function __invoke(ModifyButtonBarEvent $event): void
     {
-        $buttons = $params['buttons'];
+        $buttons = $event->getButtons();
 
         if (isset($GLOBALS['TYPO3_REQUEST']) && $this->translationService->hasCurrentUserCorrectPermisions()) {
             $route = $GLOBALS['TYPO3_REQUEST']->getAttribute('route');
 
             if ($route->getPath() !== '/record/edit') {
-                return $buttons;
+                return;
             }
 
             $editParameters = GeneralUtility::_GET('edit');
 
             if (!is_array($editParameters)) {
-                return $buttons;
+                return;
             }
 
             $tableName = key($editParameters);
@@ -59,7 +61,7 @@ class AddTranslateButton
             );
 
             if ($language === 0) {
-                return $buttons;
+                return;
             }
 
             $actionUri = (string)$this->uriBuilder->buildUriFromRoute(
@@ -67,7 +69,7 @@ class AddTranslateButton
                 ['edit' => $editParameters, 'returnUrl' => (string)$GLOBALS['TYPO3_REQUEST']->getUri()]
             );
 
-            $translateByAi = $buttonBar->makeLinkButton()
+            $translateByAi = $event->getButtonBar()->makeLinkButton()
                 ->setShowLabelText(true)
                 ->setHref($actionUri)
                 ->setTitle(
@@ -77,10 +79,12 @@ class AddTranslateButton
                 )
                 ->setIcon($this->iconFactory->getIcon('actions-translate', Icon::SIZE_SMALL));
 
-            $buttons[ButtonBar::BUTTON_POSITION_LEFT][20][] = $translateByAi;
-        }
+            $buttons[ButtonBar::BUTTON_POSITION_LEFT][20] = [$translateByAi];
+            $event->setButtons($buttons);
 
-        return $buttons;
+            $test = $event->getButtons();
+
+        }
     }
 
     /**
